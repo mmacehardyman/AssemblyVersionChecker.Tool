@@ -1,10 +1,15 @@
-﻿using Newtonsoft.Json;
-
-namespace AssemblyVersionChecker.Tool.Models
+﻿namespace AssemblyVersionChecker.Tool.Models
 {
     public class Assembly
     {
-        public string Name { get; set; }
-        public string Version { get; set; }
+        public Assembly(string name, string version)
+        {
+            Name = name;
+            Version = version;
+        }
+
+        public string Name { get; }
+
+        public string Version { get; }
     }
 }
