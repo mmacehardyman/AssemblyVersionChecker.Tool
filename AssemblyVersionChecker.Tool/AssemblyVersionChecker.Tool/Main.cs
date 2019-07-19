@@ -23,11 +23,13 @@ namespace AssemblyVersionChecker.Tool
             var manifestInformation = ManifestInformation.LoadFromFileOrCreateNew(opts.Manifest);
 
             bool result;
+
             if (!string.IsNullOrWhiteSpace(opts.Version) && !string.IsNullOrWhiteSpace(opts.Directory))
             {
                 Console.WriteLine($"Performing manual scan using version {opts.Version} and scan directory '{opts.Directory}' ...");
 
-                result = RunManualScan(opts, manifestInformation);
+                RunManualScan(opts, manifestInformation);
+                result = true;
             }
             else
             {
@@ -41,28 +43,33 @@ namespace AssemblyVersionChecker.Tool
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine($"Saving the manifest file at '{opts.Manifest}'");
 
+                // Order by version before saving
+                manifestInformation.Manifests = manifestInformation.Manifests.OrderBy(x => x.Version).ToList();
+
                 File.WriteAllText(opts.Manifest, JsonConvert.SerializeObject(manifestInformation));
             }
         }
 
-        private bool RunManualScan(Options opts, ManifestInformation manifestInformation)
+        private void RunManualScan(Options opts, ManifestInformation manifestInformation)
         {
             Console.WriteLine($"Getting release information for {opts.Version}...");
+
+            string sitecoreVersionIdentifier;
 
             var release = _releaseManager.GetRelease(opts.Version);
             if (release == null || release.DefaultDistribution == null)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("No release information available");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("No release information available, using manual scan options");
 
-                return false;
+                sitecoreVersionIdentifier = new DirectoryInfo(opts.Directory).Name;
+            }
+            else
+            {
+                 sitecoreVersionIdentifier = Path.GetFileNameWithoutExtension(release.DefaultDistribution.FileNames.First(x => x.EndsWith("zip")));
             }
 
-            var sitecoreVersionIdentifier = Path.GetFileNameWithoutExtension(release.DefaultDistribution.FileNames.First(x => x.EndsWith("zip")));
-
             ScanAssembliesAndUpdateManifest(manifestInformation, opts.TempDir, sitecoreVersionIdentifier, opts.Version);
-
-            return true;
         }
 
         private bool RunAutomaticScan(Options opts, ManifestInformation manifestInformation)
